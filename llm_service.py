@@ -1,4 +1,6 @@
 import os
+import time
+import json
 from sambanova import SambaNova
 
 client = SambaNova(
@@ -8,29 +10,21 @@ client = SambaNova(
 
 def generate_recipe_data(text: str):
     prompt = f"""
-You are a smart recipe extractor.
+You are a strict JSON generator.
 
-Extract recipe details from the input.
+Extract recipe data from the given text and return ONLY valid JSON.
 
-IMPORTANT:
-- Do NOT return empty values
-- If input is URL, still generate recipe
-- Infer missing values if needed
+Return this exact format:
 
-Return ONLY valid JSON.
-
-FORMAT:
 {{
   "title": "",
   "cuisine": "",
   "prep_time": "",
   "cook_time": "",
   "total_time": "",
-  "servings": 2,
-  "difficulty": "easy",
-  "ingredients": [
-    {{ "quantity": "", "unit": "", "item": "" }}
-  ],
+  "servings": 0,
+  "difficulty": "",
+  "ingredients": [],
   "instructions": [],
   "nutrition": {{
     "calories": "",
@@ -39,23 +33,54 @@ FORMAT:
     "fat": ""
   }},
   "substitutions": [],
-  "shopping_list": {{
-    "general": []
-  }}
+  "shopping_list": {{}}
 }}
 
-INPUT:
+TEXT:
 {text[:4000]}
 """
 
-    try:
-        response = client.chat.completions.create(
-            model="Llama-4-Maverick-17B-128E-Instruct",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.4,
-        )
+    for attempt in range(2):  # retry 2 times
+        try:
+            response = client.chat.completions.create(
+                model="Llama-4-Maverick-17B-128E-Instruct",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+            )
 
-        return response.choices[0].message.content
+            content = response.choices[0].message.content.strip()
 
-    except Exception as e:
-        return f"Error from AI: {str(e)}"
+            # 🔥 CLEAN JSON (important)
+            if content.startswith("```"):
+                content = content.replace("```json", "").replace("```", "").strip()
+
+            return content
+
+        except Exception as e:
+            print("AI Error:", str(e))
+
+            if "rate limit" in str(e).lower():
+                time.sleep(2)  # wait and retry
+            else:
+                break
+
+    # ❌ FINAL FALLBACK (NO CRASH)
+    return json.dumps({
+        "title": "Unknown Recipe",
+        "cuisine": "Unknown",
+        "prep_time": "",
+        "cook_time": "",
+        "total_time": "",
+        "servings": 0,
+        "difficulty": "unknown",
+        "ingredients": [],
+        "instructions": [],
+        "nutrition": {
+            "calories": "",
+            "protein": "",
+            "carbs": "",
+            "fat": ""
+        },
+        "substitutions": [],
+        "shopping_list": {}
+    })
