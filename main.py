@@ -29,7 +29,7 @@ def extract_recipe(url: str, db: Session = Depends(get_db)):
         raw_text = scrape_recipe(url)
 
         if not raw_text or len(raw_text) < 50:
-            return {"error": "Failed to scrape content or content too small"}
+    return {"error": "Failed to scrape content or content too small"}
 
         # 🔹 Step 2: AI Processing
         ai_response = generate_recipe_data(raw_text)
