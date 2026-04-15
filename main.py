@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import json
 
@@ -7,13 +8,21 @@ from models import Base, Recipe
 from scraper import scrape_recipe
 from llm_service import generate_recipe_data
 
-# Create tables
+# Create DB tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# ✅ CORS (important for frontend)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# ✅ DB Dependency
+# ✅ DB dependency
 def get_db():
     db = SessionLocal()
     try:
@@ -26,18 +35,18 @@ def get_db():
 @app.post("/extract")
 def extract_recipe(url: str, db: Session = Depends(get_db)):
     try:
-        # 🔥 Step 1: Scrape content
+        # 🔹 Step 1: Scrape content
         raw_text = scrape_recipe(url)
 
+        # 🔥 FALLBACK if scraping fails
         if not raw_text or len(raw_text) < 100:
-            return {
-                "error": "Failed to scrape content or content too small"
-            }
+            print("⚠️ Scraping failed, using URL fallback")
+            raw_text = f"Extract recipe from this URL: {url}"
 
-        # 🔥 Step 2: Send to AI
+        # 🔹 Step 2: Send to AI
         ai_response = generate_recipe_data(raw_text)
 
-        # 🔥 Step 3: Convert AI response → JSON
+        # 🔹 Step 3: Convert AI response → JSON
         try:
             data = json.loads(ai_response)
         except Exception as e:
@@ -47,7 +56,7 @@ def extract_recipe(url: str, db: Session = Depends(get_db)):
                 "raw_output": ai_response[:500]
             }
 
-        # 🔥 Step 4: Save to DB
+        # 🔹 Step 4: Save to DB
         recipe = Recipe(
             url=url,
             title=data.get("title"),
@@ -64,7 +73,7 @@ def extract_recipe(url: str, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(recipe)
 
-        # ✅ Step 5: Return clean response
+        # 🔹 Step 5: Return result
         return data
 
     except Exception as e:
