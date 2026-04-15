@@ -8,28 +8,44 @@ def scrape_recipe(url: str):
         "Accept-Language": "en-US,en;q=0.9"
     }
 
-    response = requests.get(url, headers=headers, timeout=10)
-    soup = BeautifulSoup(response.text, "html.parser")
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
 
-    # 🔥 Extract ALL JSON-LD scripts
-    scripts = soup.find_all("script", type="application/ld+json")
+        # If blocked or empty
+        if response.status_code != 200 or not response.text:
+            return "Failed to fetch page"
 
-    for script in scripts:
-        try:
-            data = json.loads(script.string)
+        soup = BeautifulSoup(response.text, "html.parser")
 
-            # Some pages have list of objects
-            if isinstance(data, list):
-                for item in data:
-                    if item.get("@type") == "Recipe":
-                        return json.dumps(item)
+        # 🔥 Extract ALL JSON-LD scripts
+        scripts = soup.find_all("script", type="application/ld+json")
 
-            # Direct object
-            if isinstance(data, dict) and data.get("@type") == "Recipe":
-                return json.dumps(data)
+        for script in scripts:
+            try:
+                data = json.loads(script.string)
 
-        except:
-            continue
+                # Case 1: List of objects
+                if isinstance(data, list):
+                    for item in data:
+                        if isinstance(item, dict) and item.get("@type") == "Recipe":
+                            return json.dumps(item)
 
-    # ❌ fallback (if nothing found)
-    return ""
+                # Case 2: Direct object
+                if isinstance(data, dict) and data.get("@type") == "Recipe":
+                    return json.dumps(data)
+
+            except Exception:
+                continue
+
+        # 🔁 FALLBACK (VERY IMPORTANT)
+        paragraphs = soup.find_all("p")
+        text = " ".join([p.get_text(strip=True) for p in paragraphs])
+
+        # Ensure something is returned
+        if len(text) > 100:
+            return text
+
+        return "No usable content found"
+
+    except Exception as e:
+        return f"Error: {str(e)}"
