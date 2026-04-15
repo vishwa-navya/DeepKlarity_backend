@@ -28,8 +28,9 @@ def extract_recipe(url: str, db: Session = Depends(get_db)):
         # 🔹 Step 1: Scrape
         raw_text = scrape_recipe(url)
 
-        if not raw_text or len(raw_text) < 50:
-    return {"error": "Failed to scrape content or content too small"}
+        # 🔥 FALLBACK (VERY IMPORTANT)
+        if not raw_text or len(raw_text) < 200:
+            raw_text = f"Extract recipe from this URL: {url}"
 
         # 🔹 Step 2: AI Processing
         ai_response = generate_recipe_data(raw_text)
@@ -57,13 +58,13 @@ def extract_recipe(url: str, db: Session = Depends(get_db)):
         recipe = Recipe(
             url=url,
             title=data.get("title"),
-            cuisine=data.get("cuisine"),
-            difficulty=data.get("difficulty"),
-            ingredients=data.get("ingredients"),
-            instructions=data.get("instructions"),
-            nutrition=data.get("nutrition"),
-            substitutions=data.get("substitutions"),
-            shopping_list=data.get("shopping_list"),
+            cuisine=data.get("cuisine", ""),
+            difficulty=data.get("difficulty", ""),
+            ingredients=data.get("ingredients", []),
+            instructions=data.get("instructions", []),
+            nutrition=data.get("nutrition", {}),
+            substitutions=data.get("substitutions", []),
+            shopping_list=data.get("shopping_list", {}),
         )
 
         db.add(recipe)
