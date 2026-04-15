@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import json
 import re
@@ -8,10 +9,19 @@ from models import Base, Recipe
 from scraper import scrape_recipe
 from llm_service import generate_recipe_data
 
+# Create DB tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+# 🔥 CORS FIX (VERY IMPORTANT)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow all (for assignment)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # DB dependency
 def get_db():
@@ -28,7 +38,7 @@ def extract_recipe(url: str, db: Session = Depends(get_db)):
         # 🔹 Step 1: Scrape
         raw_text = scrape_recipe(url)
 
-        # 🔥 FALLBACK (VERY IMPORTANT)
+        # 🔥 Fallback if scraping fails
         if not raw_text or len(raw_text) < 200:
             raw_text = f"Extract recipe from this URL: {url}"
 
@@ -71,7 +81,7 @@ def extract_recipe(url: str, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(recipe)
 
-        # 🔹 Step 5: Return result
+        # 🔹 Step 5: Return response
         return data
 
     except Exception as e:
