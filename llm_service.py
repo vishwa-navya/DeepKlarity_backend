@@ -8,11 +8,16 @@ client = SambaNova(
 
 def generate_recipe_data(text: str):
     prompt = f"""
-You are given structured JSON of a recipe.
+You are a smart recipe extractor.
 
-Extract and convert it into this format.
+Extract recipe details from the input.
 
-Return ONLY JSON.
+IMPORTANT:
+- Do NOT return empty values
+- If input is URL, still generate recipe
+- Infer missing values if needed
+
+Return ONLY valid JSON.
 
 FORMAT:
 {{
@@ -21,8 +26,8 @@ FORMAT:
   "prep_time": "",
   "cook_time": "",
   "total_time": "",
-  "servings": 0,
-  "difficulty": "",
+  "servings": 2,
+  "difficulty": "easy",
   "ingredients": [
     {{ "quantity": "", "unit": "", "item": "" }}
   ],
@@ -34,17 +39,23 @@ FORMAT:
     "fat": ""
   }},
   "substitutions": [],
-  "shopping_list": {{}}
+  "shopping_list": {{
+    "general": []
+  }}
 }}
 
 INPUT:
-{text}
+{text[:4000]}
 """
 
-    response = client.chat.completions.create(
-        model="Llama-4-Maverick-17B-128E-Instruct",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-    )
+    try:
+        response = client.chat.completions.create(
+            model="Llama-4-Maverick-17B-128E-Instruct",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4,
+        )
 
-    return response.choices[0].message.content
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return f"Error from AI: {str(e)}"
