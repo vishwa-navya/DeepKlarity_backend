@@ -41,7 +41,26 @@ def extract_recipe(url: str, db: Session = Depends(get_db)):
         # 🔥 FALLBACK if scraping fails
         if not raw_text or len(raw_text) < 100:
             print("⚠️ Scraping failed, using URL fallback")
-            raw_text = f"Extract recipe from this URL: {url}"
+            raw_text = scrape_recipe(url)
+
+# 🔥 BETTER FALLBACK
+if not raw_text or len(raw_text) < 100:
+    print("⚠️ Scraping weak, enhancing input")
+
+    raw_text = f"""
+    This is a recipe webpage.
+
+    URL: {url}
+
+    Try to extract a recipe using common knowledge.
+
+    If exact data is not available, generate a realistic recipe.
+
+    Include:
+    - title
+    - ingredients
+    - instructions
+    """
 
         # 🔹 Step 2: Send to AI
         ai_response = generate_recipe_data(raw_text)
