@@ -10,14 +10,15 @@ client = SambaNova(
 
 def generate_recipe_data(text: str):
     prompt = f"""
-You are a recipe generator.
+You are a professional chef AI.
 
-Extract or generate recipe details.
+Generate or extract a complete recipe.
 
-IMPORTANT:
+IMPORTANT RULES:
 - NEVER return empty fields
-- If data is unclear, generate a realistic recipe
-- Always return valid JSON only
+- ALWAYS generate a valid recipe
+- Even if input is unclear, create a realistic recipe
+- Return ONLY valid JSON
 
 FORMAT:
 {{
@@ -44,21 +45,21 @@ FORMAT:
   }}
 }}
 
-TEXT:
-{text[:2000]}
+INPUT:
+{text[:1500]}
 """
 
-    for _ in range(2):  # retry
+    for _ in range(2):  # retry for rate limit
         try:
             response = client.chat.completions.create(
                 model="Llama-4-Maverick-17B-128E-Instruct",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
+                temperature=0.4,
             )
 
             content = response.choices[0].message.content.strip()
 
-            # remove markdown if exists
+            # 🔥 Clean markdown if exists
             if content.startswith("```"):
                 content = content.replace("```json", "").replace("```", "").strip()
 
@@ -70,9 +71,9 @@ TEXT:
             else:
                 break
 
-    # 🔥 FINAL fallback (never fail)
+    # 🔥 FINAL GUARANTEE (never fail)
     return json.dumps({
-        "title": "Simple Homemade Recipe",
+        "title": "Homemade Recipe",
         "cuisine": "Generic",
         "prep_time": "10 mins",
         "cook_time": "15 mins",
@@ -85,7 +86,7 @@ TEXT:
         ],
         "instructions": [
             "Mix all ingredients",
-            "Cook on medium heat",
+            "Cook properly",
             "Serve hot"
         ],
         "nutrition": {
