@@ -8,12 +8,35 @@ client = SambaNova(
 
 def generate_recipe_data(text: str):
     prompt = f"""
-Extract structured recipe data from the below text.
+You are a strict JSON generator.
 
-Return STRICT JSON with:
-title, cuisine, prep_time, cook_time, total_time, servings,
-difficulty, ingredients (quantity, unit, item),
-instructions, nutrition, substitutions, shopping_list
+Extract recipe data from the given text and return ONLY valid JSON.
+
+Do NOT include any explanation or text.
+
+Return format:
+
+{{
+  "title": "",
+  "cuisine": "",
+  "prep_time": "",
+  "cook_time": "",
+  "total_time": "",
+  "servings": 0,
+  "difficulty": "",
+  "ingredients": [
+    {{ "quantity": "", "unit": "", "item": "" }}
+  ],
+  "instructions": [],
+  "nutrition": {{
+    "calories": "",
+    "protein": "",
+    "carbs": "",
+    "fat": ""
+  }},
+  "substitutions": [],
+  "shopping_list": {{}}
+}}
 
 TEXT:
 {text}
