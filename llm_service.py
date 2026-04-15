@@ -8,49 +8,32 @@ client = SambaNova(
 
 def generate_recipe_data(text: str):
     prompt = f"""
-Extract recipe information from the text below.
+You are a smart recipe extractor.
+
+The input is full HTML of a recipe webpage.
+
+Extract:
+- title
+- ingredients
+- instructions
 
 IMPORTANT:
-- Do NOT leave fields empty
-- If exact values are missing, make reasonable guesses
-- Focus on ingredients and instructions
+- Do NOT leave empty
+- Infer if needed
+- Ignore HTML tags
 
-Return ONLY valid JSON (no explanation)
-
-FORMAT:
+Return ONLY JSON:
 
 {{
-  "title": "recipe name",
-  "cuisine": "type",
-  "prep_time": "value",
-  "cook_time": "value",
-  "total_time": "value",
-  "servings": 2,
-  "difficulty": "easy",
+  "title": "",
   "ingredients": [
-    {{ "quantity": "2", "unit": "slices", "item": "bread" }}
+    {{ "quantity": "", "unit": "", "item": "" }}
   ],
-  "instructions": [
-    "step 1",
-    "step 2"
-  ],
-  "nutrition": {{
-    "calories": "approx",
-    "protein": "approx",
-    "carbs": "approx",
-    "fat": "approx"
-  }},
-  "substitutions": [
-    "suggestion 1",
-    "suggestion 2"
-  ],
-  "shopping_list": {{
-    "general": ["items"]
-  }}
+  "instructions": []
 }}
 
-TEXT:
-{text[:4000]}
+HTML:
+{text[:6000]}
 """
 
     response = client.chat.completions.create(
