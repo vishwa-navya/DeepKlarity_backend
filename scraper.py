@@ -1,4 +1,3 @@
-
 import requests
 from bs4 import BeautifulSoup
 
@@ -7,19 +6,24 @@ def scrape_recipe(url: str):
         "User-Agent": "Mozilla/5.0"
     }
 
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        soup = BeautifulSoup(response.text, "html.parser")
+    response = requests.get(url, headers=headers)
+    soup = BeautifulSoup(response.text, "html.parser")
 
-        paragraphs = [p.get_text(strip=True) for p in soup.find_all("p")]
-        headings = [h.get_text(strip=True) for h in soup.find_all(["h1", "h2", "h3"])]
-        list_items = [li.get_text(strip=True) for li in soup.find_all("li")]
-        content = " ".join(headings + paragraphs + list_items)
+    content = []
 
-        
-        content = " ".join(content.split())
+    # Extract title
+    title = soup.find("h1")
+    if title:
+        content.append(title.get_text(strip=True))
 
-        return content
+    # Extract ingredients
+    ingredients = soup.find_all("span", class_="ingredients-item-name")
+    for ing in ingredients:
+        content.append(ing.get_text(strip=True))
 
-    except Exception as e:
-        return f"Error scraping: {str(e)}"
+    # Extract instructions
+    steps = soup.find_all("div", class_="paragraph")
+    for step in steps:
+        content.append(step.get_text(strip=True))
+
+    return " ".join(content)
