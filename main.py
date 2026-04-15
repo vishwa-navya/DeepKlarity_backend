@@ -29,7 +29,7 @@ def extract_recipe(url: str, db: Session = Depends(get_db)):
         # 🔥 Step 1: Scrape content
         raw_text = scrape_recipe(url)
 
-        if not raw_text or len(raw_text) < 500:
+        if not raw_text or len(raw_text) < 100:
             return {
                 "error": "Failed to scrape content or content too small"
             }
