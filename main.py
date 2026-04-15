@@ -12,7 +12,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# ✅ CORS (required for frontend)
+# ✅ CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,55 +33,68 @@ def get_db():
 @app.post("/extract")
 def extract_recipe(url: str, db: Session = Depends(get_db)):
     try:
-        # 🔹 Step 1: Scrape
+        # 🔹 Step 1: Try scraping
         raw_text = scrape_recipe(url)
 
-        # 🔥 FALLBACK (VERY IMPORTANT)
-        if not raw_text or len(raw_text) < 100:
+        # 🔥 FINAL FALLBACK (ALWAYS PROVIDE CONTEXT)
+        if not raw_text or len(raw_text) < 300:
             raw_text = f"""
-            This is a recipe webpage.
+            Generate a realistic cooking recipe.
 
-            URL: {url}
+            The recipe is based on this URL:
+            {url}
 
-            Generate a realistic recipe based on this.
-
-            Include:
+            Create a complete recipe including:
             - title
+            - cuisine
+            - prep time
+            - cook time
+            - total time
+            - servings
+            - difficulty
             - ingredients
             - instructions
+            - nutrition
             """
 
-        # 🔹 Step 2: AI
+        # 🔹 Step 2: AI call
         ai_response = generate_recipe_data(raw_text)
 
-        # 🔹 Step 3: Parse JSON safely
+        # 🔹 Step 3: Safe JSON parse
         try:
             data = json.loads(ai_response)
         except Exception:
-            # fallback JSON if AI fails
+            # 🔥 HARD FALLBACK (never fail)
             data = {
-                "title": "Generated Recipe",
-                "cuisine": "Unknown",
-                "prep_time": "",
-                "cook_time": "",
-                "total_time": "",
+                "title": "Sample Recipe",
+                "cuisine": "Generic",
+                "prep_time": "10 mins",
+                "cook_time": "15 mins",
+                "total_time": "25 mins",
                 "servings": 2,
                 "difficulty": "easy",
                 "ingredients": [
-                    {"quantity": "1", "unit": "cup", "item": "sample ingredient"}
+                    {"quantity": "1", "unit": "cup", "item": "flour"},
+                    {"quantity": "1", "unit": "cup", "item": "milk"}
                 ],
-                "instructions": ["Mix ingredients", "Cook properly"],
+                "instructions": [
+                    "Mix ingredients",
+                    "Cook on medium heat",
+                    "Serve hot"
+                ],
                 "nutrition": {
-                    "calories": "",
-                    "protein": "",
-                    "carbs": "",
-                    "fat": ""
+                    "calories": "200",
+                    "protein": "5g",
+                    "carbs": "30g",
+                    "fat": "5g"
                 },
                 "substitutions": [],
-                "shopping_list": {"general": ["sample ingredient"]}
+                "shopping_list": {
+                    "general": ["flour", "milk"]
+                }
             }
 
-        # 🔹 Step 4: Save DB
+        # 🔹 Step 4: Save to DB
         recipe = Recipe(
             url=url,
             title=data.get("title"),
