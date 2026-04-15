@@ -1,29 +1,48 @@
 import requests
 from bs4 import BeautifulSoup
+import json
 
 def scrape_recipe(url: str):
     headers = {
-        "User-Agent": "Mozilla/5.0"
+        "User-Agent": "Mozilla/5.0",
+        "Accept-Language": "en-US,en;q=0.9"
     }
 
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=10)
     soup = BeautifulSoup(response.text, "html.parser")
 
-    content = []
+    # 🔥 BEST METHOD: Extract JSON-LD (structured data)
+    script = soup.find("script", type="application/ld+json")
 
-    # Extract title
-    title = soup.find("h1")
-    if title:
-        content.append(title.get_text(strip=True))
+    if script:
+        try:
+            data = json.loads(script.string)
 
-    # Extract ingredients
-    ingredients = soup.find_all("span", class_="ingredients-item-name")
-    for ing in ingredients:
-        content.append(ing.get_text(strip=True))
+            # Handle list format
+            if isinstance(data, list):
+                data = data[0]
 
-    # Extract instructions
-    steps = soup.find_all("div", class_="paragraph")
-    for step in steps:
-        content.append(step.get_text(strip=True))
+            # Extract useful fields
+            title = data.get("name", "")
+            ingredients = data.get("recipeIngredient", [])
+            instructions_data = data.get("recipeInstructions", [])
 
-    return " ".join(content)
+            instructions = []
+            for step in instructions_data:
+                if isinstance(step, dict):
+                    instructions.append(step.get("text", ""))
+                else:
+                    instructions.append(str(step))
+
+            content = f"Title: {title}. Ingredients: {ingredients}. Instructions: {instructions}"
+
+            return content
+
+        except Exception:
+            pass
+
+    # 🔁 FALLBACK (if JSON-LD not found)
+    paragraphs = soup.find_all("p")
+    text = " ".join([p.get_text(strip=True) for p in paragraphs])
+
+    return text
