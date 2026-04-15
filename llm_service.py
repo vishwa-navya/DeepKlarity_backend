@@ -8,53 +8,55 @@ client = SambaNova(
 
 def generate_recipe_data(text: str):
     prompt = f"""
-You are an intelligent recipe extraction system.
+Extract recipe information from the text below.
 
-From the given webpage text, extract structured recipe data.
+IMPORTANT:
+- Do NOT leave fields empty
+- If exact values are missing, make reasonable guesses
+- Focus on ingredients and instructions
 
-IMPORTANT RULES:
-- Return ONLY valid JSON
-- Do NOT include any explanation or extra text
-- If some fields are missing, intelligently infer values
-- Fill as much data as possible
+Return ONLY valid JSON (no explanation)
 
-JSON FORMAT:
+FORMAT:
 
 {{
-  "title": "",
-  "cuisine": "",
-  "prep_time": "",
-  "cook_time": "",
-  "total_time": "",
-  "servings": 0,
-  "difficulty": "",
+  "title": "recipe name",
+  "cuisine": "type",
+  "prep_time": "value",
+  "cook_time": "value",
+  "total_time": "value",
+  "servings": 2,
+  "difficulty": "easy",
   "ingredients": [
-    {{ "quantity": "", "unit": "", "item": "" }}
+    {{ "quantity": "2", "unit": "slices", "item": "bread" }}
   ],
-  "instructions": [],
+  "instructions": [
+    "step 1",
+    "step 2"
+  ],
   "nutrition": {{
-    "calories": "",
-    "protein": "",
-    "carbs": "",
-    "fat": ""
+    "calories": "approx",
+    "protein": "approx",
+    "carbs": "approx",
+    "fat": "approx"
   }},
-  "substitutions": [],
-  "shopping_list": {{}}
+  "substitutions": [
+    "suggestion 1",
+    "suggestion 2"
+  ],
+  "shopping_list": {{
+    "general": ["items"]
+  }}
 }}
 
 TEXT:
-{text}
+{text[:4000]}
 """
 
-    try:
-        response = client.chat.completions.create(
-            model="Llama-4-Maverick-17B-128E-Instruct",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
-            top_p=0.9,
-        )
+    response = client.chat.completions.create(
+        model="Llama-4-Maverick-17B-128E-Instruct",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3,
+    )
 
-        return response.choices[0].message.content
-
-    except Exception as e:
-        return f"Error from AI: {str(e)}"
+    return response.choices[0].message.content
